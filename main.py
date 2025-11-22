@@ -1,22 +1,11 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from email_validator import validate_email, EmailNotValidError
-from enum import Enum
+from schemas import Item, User, ModelName
+from validations import email_validation
 
 app = FastAPI()
 
-
-class ModelName(str, Enum):
-    alexnet = 'alexnet'
-    resnet = 'resnet'
-    lenet = 'lenet'
-
-
-class Item(BaseModel):
-    name: str
-    price: float
-    email: str
-    is_offer: bool | None = None
+fake_items_db = [{"item_name": "Boo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
 
 
 @app.get("/")
@@ -48,3 +37,14 @@ async def get_model(model_name: ModelName):
         return {"model_name": model_name, "message": "LeCNN all the images"}
 
     return {"model_name": model_name, "message": "Have some residuals"}
+
+
+@app.get("/items/")
+async def read_items(skip: int = 0, limit: int = 10):
+    return fake_items_db[skip: skip + limit]
+
+
+@app.post("/user/")
+async def create_user(user: User):
+    email_validation(user.email)
+    return user
