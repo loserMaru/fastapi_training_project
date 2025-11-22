@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from email_validator import validate_email, EmailNotValidError
 
 app = FastAPI()
 
@@ -7,7 +8,9 @@ app = FastAPI()
 class Item(BaseModel):
     name: str
     price: float
+    email: str
     is_offer: bool | None = None
+
 
 @app.get("/")
 async def read_root():
@@ -15,8 +18,13 @@ async def read_root():
 
 
 @app.get("/items/{item_id}")
-async def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
+async def read_item(item_id: int, email: str, q: str | None = None):
+    try:
+        email = validate_email(email, check_deliverability=False)
+        email = email.normalized
+    except EmailNotValidError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"item_id": item_id, "q": q, "email": email}
 
 
 @app.put("/items/{item_id}")
